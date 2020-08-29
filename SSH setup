@@ -1,0 +1,20 @@
+# 참고 사이트
+## http://www.tuxfixer.com/configure-ssh-service-in-manjaro-linux/
+
+1. install openssh (if needed)
+sudo pacman -S openssh 
+
+2. Verify SSH Service status
+sudo systemctl status sshd.service
+
+3. Edit SSH Daemon config file (if needed)
+sudo nano /etc/ssh/sshd_config
+
+4. Enable and launch SSH Service
+sudo systemctl enable sshd.service
+sudo systemctl start sshd.service
+
+5. Test SSH connectivity
+ssh companion_tazo@192.168.2.59
+
+6. success
