@@ -1,0 +1,93 @@
+# 아치계열에서 방화벽 설정하기.
+# 참고 블로그 주소
+# https://www.bada-ie.com/board/view/?page=64&uid=2017&category_code=&code=all&key=&keyfield=
+
+
+# 만자로는 방화벽 설정시 수작업을 해 주셔야 합니다.
+# 룰을 만들고 그걸 iptables-restore 해서 적용합니다.
+# 만자로 뿐만 아니라 데비안 계열도 똑같습니다. rules.v4 파일을 아무곳에나 만들고 그걸 적용하면 됩니다.
+# centos 같은 경우 /etc/sysconfig/iptables 라는 기본 파일이 존재합니다.
+# 나머지 설정도 기본으로 다되어 있어 좀 편하죠.... 따로 뭐할 필요가 없죠... 요건 centos 승.... ^^;
+
+
+# 만약 설치가 안 되어 있으면
+
+pacman -S iptables
+
+# 기존 룰을 파일로 뺄때..
+
+iptables-save > /etc/iptables/rules.v4
+
+# 파일에 저장된 룰을 적용할 때
+
+iptables-restore < /etc/iptables/rules.v4
+
+# rules.v4 라는 파일을 /etc/iptables 에 하나 만드세요...
+# 그걸 적용할 겁니다.
+
+# 기존에 /etc/iptables/simple_firewall.rules 파일을 보면 가장 기본적인 것이 저장되어 있습니다.
+# 요 파일을 기반으로 작성하셔도 되고요....
+# 아래는 간단한 예제입니다. 80 포트를 열었네요...
+
+vi /etc/iptables/rules.v4
+
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p tcp -j REJECT --reject-with tcp-reset
+-A INPUT -p udp -j REJE/etc/systemd/system/iptables.serviceCT --reject-with icmp-port-unreachable
+-A INPUT -j REJECT --reject-with icmp-proto-unreachable
+
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT
+COMMIT
+
+
+# 서버 시작시 자동으로 시작되게 하기..
+
+vi /etc/systemd/system/iptables.service
+
+[Unit]
+Description=iptables service
+Before=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/iptables-restore /etc/iptables/rules.v4
+ExecReload=/usr/bin/iptables-restore /etc/iptables/rules.v4
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+# 권한 조정
+
+# 664 정도에 root 한테 주는 게 좋겠네요.
+
+# 이부분은 잘 모르겠어서 루트 권한으로 각각 644만 주었다.
+
+chown root /etc/systemd/system/iptables.service
+chown root /etc/iptables/rules.v4
+
+chmod 644 /etc/systemd/system/iptables.service
+chmod 644 /etc/iptables/rules.v4
+
+
+systemctl daemon-reload
+
+systemctl enable iptables
+
+systemctl start iptables
+
+
+# 자동 시작이 적용된 사항을 보려면
+
+systemctl status iptables
+
+# iptables 적용 상태를 확인 하시려면...
+
+iptables -L
